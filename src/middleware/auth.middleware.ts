@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import type { User } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase.js';
+import { supabaseAdmin } from '../lib/supabase.js';
 
 export interface AuthenticatedRequest extends Request {
   user: User;
@@ -21,7 +21,7 @@ export async function requireAuth(request: Request, response: Response, next: Ne
     return;
   }
 
-  const { data, error } = await supabase.auth.getUser(token);
+  const { data, error } = await supabaseAdmin.auth.getUser(token);
 
   if (error || !data.user) {
     response.status(401).json({ error: 'Invalid or expired token' });
