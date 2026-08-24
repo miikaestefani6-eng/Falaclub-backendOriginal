@@ -1,17 +1,29 @@
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
 
-const RENDER_API_URL = process.env.RENDER_API_URL?.replace(/\/$/, '');
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
-const TEST_USER_EMAIL = process.env.TEST_USER_EMAIL;
-const TEST_USER_PASSWORD = process.env.TEST_USER_PASSWORD;
+const rawRenderApiUrl = process.env.RENDER_API_URL;
+const rawSupabaseUrl = process.env.SUPABASE_URL;
+const rawSupabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const rawTestUserEmail = process.env.TEST_USER_EMAIL;
+const rawTestUserPassword = process.env.TEST_USER_PASSWORD;
 
-if (!RENDER_API_URL || !SUPABASE_URL || !SUPABASE_ANON_KEY || !TEST_USER_EMAIL || !TEST_USER_PASSWORD) {
+if (
+  !rawRenderApiUrl ||
+  !rawSupabaseUrl ||
+  !rawSupabaseAnonKey ||
+  !rawTestUserEmail ||
+  !rawTestUserPassword
+) {
   throw new Error(
     'Missing RENDER_API_URL, SUPABASE_URL, SUPABASE_ANON_KEY, TEST_USER_EMAIL or TEST_USER_PASSWORD.',
   );
 }
+
+const RENDER_API_URL: string = rawRenderApiUrl.replace(/\/$/, '');
+const SUPABASE_URL: string = rawSupabaseUrl;
+const SUPABASE_ANON_KEY: string = rawSupabaseAnonKey;
+const TEST_USER_EMAIL: string = rawTestUserEmail;
+const TEST_USER_PASSWORD: string = rawTestUserPassword;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
