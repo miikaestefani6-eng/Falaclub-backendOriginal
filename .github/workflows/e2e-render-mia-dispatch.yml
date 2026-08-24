@@ -2,6 +2,9 @@ name: E2E Render Mia
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/e2e-render-mia-dispatch.yml'
 
 jobs:
   e2e-render:
