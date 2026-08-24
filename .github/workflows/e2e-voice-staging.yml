@@ -52,3 +52,7 @@ jobs:
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
         run: npm run test:voice
+
+      - name: Mark voice smoke completion
+        if: always()
+        run: echo "Voice staging smoke completed"
