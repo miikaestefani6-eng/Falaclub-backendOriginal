@@ -1,9 +1,6 @@
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
-import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { writeFileSync } from 'node:fs';
 
 const API_BASE_URL = (
   process.env.RENDER_API_URL ??
@@ -32,7 +29,6 @@ type LanguageCase = {
   code: LanguageCode;
   label: string;
   phrase: string;
-  espeakVoice: string;
   transcriptKeywords: string[];
   replyMarkers: string[];
 };
@@ -45,12 +41,15 @@ type VoiceResponse = {
   messageId: string;
 };
 
+type FixtureResponse = {
+  audioBase64: string;
+};
+
 const CASES: LanguageCase[] = [
   {
     code: 'en',
     label: 'English',
     phrase: 'Hello Mia! How are you doing today?',
-    espeakVoice: 'en-us',
     transcriptKeywords: ['hello', 'mia', 'how', 'today'],
     replyMarkers: [' i ', ' you ', ' your ', ' today ', ' doing ', ' good ', ' great ', ' how ', ' hello '],
   },
@@ -58,7 +57,6 @@ const CASES: LanguageCase[] = [
     code: 'es',
     label: 'Español',
     phrase: '¡Hola Mia! ¿Cómo estás hoy?',
-    espeakVoice: 'es',
     transcriptKeywords: ['hola', 'mia', 'como', 'hoy'],
     replyMarkers: [' hola ', ' estoy ', ' estas ', ' hoy ', ' bien ', ' gracias ', ' que ', ' tu ', ' como '],
   },
@@ -66,7 +64,6 @@ const CASES: LanguageCase[] = [
     code: 'fr',
     label: 'Français',
     phrase: "Bonjour Mia ! Comment vas-tu aujourd'hui ?",
-    espeakVoice: 'fr-fr',
     transcriptKeywords: ['bonjour', 'mia', 'comment', 'aujourd'],
     replyMarkers: [' bonjour ', ' je ', ' tu ', ' vous ', ' bien ', ' merci ', ' comment ', ' aujourd ', ' ca '],
   },
@@ -74,7 +71,6 @@ const CASES: LanguageCase[] = [
     code: 'pt',
     label: 'Português',
     phrase: 'Olá Mia! Como você está hoje?',
-    espeakVoice: 'pt-br',
     transcriptKeywords: ['ola', 'mia', 'como', 'hoje'],
     replyMarkers: [' ola ', ' estou ', ' voce ', ' hoje ', ' bem ', ' como ', ' eu ', ' tudo ', ' que '],
   },
@@ -138,38 +134,40 @@ function assertMp3(buffer: Buffer, language: LanguageCase) {
   }
 }
 
-function createSpeechFixture(language: LanguageCase, directory: string) {
-  const wavPath = join(directory, `input-${language.code}.wav`);
+async function createNaturalSpeechFixture(language: LanguageCase, accessToken: string) {
+  const response = await fetch(`${API_BASE_URL}/api/chat/voice/test-fixture`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ text: language.phrase }),
+  });
 
-  try {
-    execFileSync(
-      'espeak',
-      ['-v', language.espeakVoice, '-s', '140', '-w', wavPath, language.phrase],
-      { stdio: 'pipe' },
-    );
-  } catch (error) {
+  const body = await response.text();
+
+  if (!response.ok) {
     throw new Error(
-      `Could not generate ${language.code.toUpperCase()} speech fixture. Install espeak before running this test. ${String(error)}`,
+      `[${language.code.toUpperCase()}] Could not create natural voice fixture (${response.status}): ${body}`,
     );
   }
 
-  return readFileSync(wavPath);
+  const payload = JSON.parse(body) as FixtureResponse;
+  const mp3 = Buffer.from(payload.audioBase64, 'base64');
+  assertMp3(mp3, language);
+  return mp3;
 }
 
-async function testLanguage(
-  language: LanguageCase,
-  accessToken: string,
-  fixtureDirectory: string,
-) {
+async function testLanguage(language: LanguageCase, accessToken: string) {
   console.log(`\n▶ Testing ${language.label} (${language.code.toUpperCase()})`);
   console.log(`Input: ${language.phrase}`);
 
-  const inputAudio = createSpeechFixture(language, fixtureDirectory);
+  const inputAudio = await createNaturalSpeechFixture(language, accessToken);
   const form = new FormData();
   form.append(
     'file',
-    new Blob([inputAudio], { type: 'audio/wav' }),
-    `input-${language.code}.wav`,
+    new Blob([inputAudio], { type: 'audio/mpeg' }),
+    `input-${language.code}.mp3`,
   );
 
   const response = await fetch(`${API_BASE_URL}/api/chat/voice`, {
@@ -229,14 +227,8 @@ async function main() {
     throw new Error(`Supabase login failed: ${error?.message ?? 'No session returned'}`);
   }
 
-  const fixtureDirectory = mkdtempSync(join(tmpdir(), 'falaclub-multilingual-'));
-
-  try {
-    for (const language of CASES) {
-      await testLanguage(language, data.session.access_token, fixtureDirectory);
-    }
-  } finally {
-    rmSync(fixtureDirectory, { recursive: true, force: true });
+  for (const language of CASES) {
+    await testLanguage(language, data.session.access_token);
   }
 
   console.log('\n✅ ALL 4 LANGUAGES PASSED E2E VOICE TEST');
