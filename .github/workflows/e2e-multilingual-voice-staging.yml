@@ -1,0 +1,73 @@
+name: E2E Multilingual Voice Staging
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/mia-voice-service
+    paths:
+      - '.github/workflows/e2e-multilingual-voice-staging.yml'
+      - 'scripts/test-multilingual-voice.ts'
+      - 'src/services/voice.service.ts'
+      - 'src/services/ai.service.ts'
+      - 'src/services/chat.service.ts'
+      - 'src/routes/chat.routes.ts'
+
+jobs:
+  multilingual-voice-staging:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout voice branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/mia-voice-service
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install eSpeak fixtures dependency
+        run: sudo apt-get update && sudo apt-get install -y espeak
+
+      - name: Wait for staging health and stabilization
+        run: |
+          for i in {1..30}; do
+            if curl -fsS https://falaclub-backend-staging.onrender.com/health > /dev/null; then
+              echo "Staging is healthy; waiting 60s for any in-flight Render deploy to settle..."
+              sleep 60
+              curl -fsS https://falaclub-backend-staging.onrender.com/health > /dev/null
+              echo "Staging is stable"
+              exit 0
+            fi
+            echo "Waiting for staging... ($i/30)"
+            sleep 10
+          done
+          echo "Staging did not become healthy in time"
+          exit 1
+
+      - name: Run multilingual voice E2E
+        env:
+          API_BASE_URL: https://falaclub-backend-staging.onrender.com
+          SUPABASE_URL: https://elvmyktosxhldduhkxge.supabase.co
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+        run: npm run test:voice:multilingual
+
+      - name: Upload multilingual MP3 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: multilingual-voice-mp3
+          path: |
+            test-en.mp3
+            test-es.mp3
+            test-fr.mp3
+            test-pt.mp3
+          if-no-files-found: warn
+          retention-days: 7

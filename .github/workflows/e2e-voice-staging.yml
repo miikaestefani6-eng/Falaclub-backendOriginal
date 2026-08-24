@@ -1,0 +1,60 @@
+name: E2E Voice Staging
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/mia-voice-service
+    paths:
+      - '.github/workflows/e2e-voice-staging.yml'
+      - 'scripts/test-voice-chat.ts'
+      - 'src/services/voice.service.ts'
+      - 'src/services/ai.service.ts'
+      - 'src/services/chat.service.ts'
+      - 'src/routes/chat.routes.ts'
+
+jobs:
+  voice-staging:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout voice branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/mia-voice-service
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Wait for staging health
+        run: |
+          for i in {1..30}; do
+            if curl -fsS https://falaclub-backend-staging.onrender.com/health > /dev/null; then
+              echo "Staging is healthy"
+              exit 0
+            fi
+            echo "Waiting for staging... ($i/30)"
+            sleep 10
+          done
+          echo "Staging did not become healthy in time"
+          exit 1
+
+      - name: Run voice smoke test against staging
+        env:
+          API_BASE_URL: https://falaclub-backend-staging.onrender.com
+          SUPABASE_URL: https://elvmyktosxhldduhkxge.supabase.co
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+        run: |
+          npm run test:voice | tee voice-smoke.log
+          grep -q '^audioBytes:' voice-smoke.log || { echo 'TTS audio was not generated'; exit 1; }
+          echo '✅ Strict voice E2E passed with MP3 audio'
+
+      - name: Confirm post-live TTS verification
+        run: echo "Post-live strict TTS verification run"
