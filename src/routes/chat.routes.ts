@@ -23,6 +23,10 @@ const voiceBodySchema = z.object({
   ),
 });
 
+const voiceFixtureSchema = z.object({
+  text: z.string().trim().min(1).max(500),
+});
+
 function handleKnownError(error: unknown) {
   if (error instanceof ChatServiceError) {
     return { statusCode: error.statusCode, message: error.message };
@@ -72,6 +76,35 @@ chatRouter.post('/', requireAuth, async (request, response) => {
     }
 
     console.error('Unexpected chat route error', error);
+    response.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+chatRouter.post('/voice/test-fixture', requireAuth, async (request, response) => {
+  if (process.env.VOICE_E2E_FIXTURE_ENABLED !== 'true') {
+    response.status(404).json({ error: 'Not found' });
+    return;
+  }
+
+  try {
+    const parsed = voiceFixtureSchema.safeParse(request.body);
+
+    if (!parsed.success) {
+      response.status(400).json({ error: 'Invalid fixture text' });
+      return;
+    }
+
+    const audio = await synthesizeSpeech(parsed.data.text);
+    response.status(200).json({ audioBase64: audio.toString('base64') });
+  } catch (error) {
+    const knownError = handleKnownError(error);
+
+    if (knownError) {
+      response.status(knownError.statusCode).json({ error: knownError.message });
+      return;
+    }
+
+    console.error('Unexpected voice fixture route error', error);
     response.status(500).json({ error: 'Internal server error' });
   }
 });
