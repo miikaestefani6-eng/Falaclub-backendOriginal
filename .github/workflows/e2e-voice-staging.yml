@@ -31,6 +31,19 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Wait for staging health
+        run: |
+          for i in {1..30}; do
+            if curl -fsS https://falaclub-backend-staging.onrender.com/health > /dev/null; then
+              echo "Staging is healthy"
+              exit 0
+            fi
+            echo "Waiting for staging... ($i/30)"
+            sleep 10
+          done
+          echo "Staging did not become healthy in time"
+          exit 1
+
       - name: Run voice smoke test against staging
         env:
           API_BASE_URL: https://falaclub-backend-staging.onrender.com
