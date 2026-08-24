@@ -59,7 +59,7 @@ async function generateWithOpenAI(messages: ReturnType<typeof buildMessages>) {
 
 async function generateWithGroq(messages: ReturnType<typeof buildMessages>) {
   const completion = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
+    model: 'llama-3.1-8b-instant',
     messages,
     temperature: 0.7,
   });
