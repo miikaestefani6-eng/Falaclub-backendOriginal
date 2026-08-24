@@ -62,6 +62,15 @@ chatRouter.post('/', requireAuth, async (request, response) => {
         .single();
 
       if (createConversationError || !newConversation) {
+        console.error('Supabase conversations INSERT failed', {
+          message: createConversationError?.message,
+          code: createConversationError?.code,
+          details: createConversationError?.details,
+          hint: createConversationError?.hint,
+          userIdAttempted: user.id,
+          returnedConversation: Boolean(newConversation),
+        });
+
         throw new HttpError(500, 'Could not create conversation');
       }
 
