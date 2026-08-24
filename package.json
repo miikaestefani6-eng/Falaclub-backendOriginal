@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test:chat": "tsx scripts/test-chat.ts",
     "test:voice": "tsx scripts/test-voice-chat.ts",
+    "test:voice:multilingual": "tsx scripts/test-multilingual-voice.ts",
     "test:e2e:render": "ts-node scripts/e2e-render-test.ts"
   },
   "engines": {
