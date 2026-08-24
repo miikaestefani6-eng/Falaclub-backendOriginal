@@ -107,13 +107,27 @@ chatRouter.post('/voice', requireAuth, audioUpload, async (request, response) =>
       message: userTranscript,
     });
 
-    const audioBuffer = await synthesizeSpeech(chatResult.reply);
+    let audioBase64: string | null = null;
+
+    try {
+      const audioBuffer = await synthesizeSpeech(chatResult.reply);
+      audioBase64 = audioBuffer.toString('base64');
+    } catch (error) {
+      if (error instanceof VoiceServiceError) {
+        console.warn('Voice TTS unavailable; returning text fallback.', {
+          code: error.code,
+          message: error.message,
+        });
+      } else {
+        console.warn('Unexpected TTS failure; returning text fallback.');
+      }
+    }
 
     response.status(200).json({
       conversationId: chatResult.conversationId,
       userTranscript,
       replyText: chatResult.reply,
-      audioBase64: audioBuffer.toString('base64'),
+      audioBase64,
       messageId: chatResult.messageId,
     });
   } catch (error) {
