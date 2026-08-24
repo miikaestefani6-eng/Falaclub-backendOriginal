@@ -7,6 +7,8 @@ const envSchema = z.object({
   SUPABASE_URL: z.string().url(),
   SUPABASE_ANON_KEY: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+  OPENAI_API_KEY: z.string().min(1),
+  GROQ_API_KEY: z.string().min(1),
 });
 
 const parsed = envSchema.safeParse(process.env);
