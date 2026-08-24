@@ -1,0 +1,41 @@
+name: E2E Voice Staging
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/mia-voice-service
+    paths:
+      - '.github/workflows/e2e-voice-staging.yml'
+      - 'scripts/test-voice-chat.ts'
+      - 'src/services/voice.service.ts'
+      - 'src/services/ai.service.ts'
+      - 'src/services/chat.service.ts'
+      - 'src/routes/chat.routes.ts'
+
+jobs:
+  voice-staging:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout voice branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/mia-voice-service
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run voice smoke test against staging
+        env:
+          API_BASE_URL: https://falaclub-backend-staging.onrender.com
+          SUPABASE_URL: https://elvmyktosxhldduhkxge.supabase.co
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+        run: npm run test:voice
