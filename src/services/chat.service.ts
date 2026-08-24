@@ -27,13 +27,13 @@ export async function processChatMessage({
   message,
   conversationId,
 }: ProcessChatInput): Promise<ProcessChatResult> {
-  let activeConversationId = conversationId;
+  let activeConversationId: string;
 
-  if (activeConversationId) {
+  if (conversationId) {
     const { data: existingConversation, error: conversationError } = await supabaseAdmin
       .from('conversations')
       .select('id')
-      .eq('id', activeConversationId)
+      .eq('id', conversationId)
       .eq('user_id', userId)
       .maybeSingle();
 
@@ -44,6 +44,8 @@ export async function processChatMessage({
     if (!existingConversation) {
       throw new ChatServiceError(404, 'Conversation not found');
     }
+
+    activeConversationId = conversationId;
   } else {
     const { data: newConversation, error: createConversationError } = await supabaseAdmin
       .from('conversations')
