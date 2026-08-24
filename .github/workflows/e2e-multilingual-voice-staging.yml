@@ -34,11 +34,14 @@ jobs:
       - name: Install eSpeak fixtures dependency
         run: sudo apt-get update && sudo apt-get install -y espeak
 
-      - name: Wait for staging health
+      - name: Wait for staging health and stabilization
         run: |
           for i in {1..30}; do
             if curl -fsS https://falaclub-backend-staging.onrender.com/health > /dev/null; then
-              echo "Staging is healthy"
+              echo "Staging is healthy; waiting 60s for any in-flight Render deploy to settle..."
+              sleep 60
+              curl -fsS https://falaclub-backend-staging.onrender.com/health > /dev/null
+              echo "Staging is stable"
               exit 0
             fi
             echo "Waiting for staging... ($i/30)"
