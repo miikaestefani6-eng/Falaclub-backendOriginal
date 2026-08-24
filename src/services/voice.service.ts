@@ -34,7 +34,8 @@ function isTimeoutError(error: unknown) {
 
 export async function transcribeAudio(audioBuffer: Buffer, filename: string): Promise<string> {
   try {
-    const file = new File([audioBuffer], filename, { type: 'application/octet-stream' });
+    const bytes = Uint8Array.from(audioBuffer);
+    const file = new File([bytes], filename, { type: 'application/octet-stream' });
     const transcription = await groq.audio.transcriptions.create({
       file,
       model: STT_MODEL,
