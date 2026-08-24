@@ -9,7 +9,8 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
-    "test:chat": "tsx scripts/test-chat.ts"
+    "test:chat": "tsx scripts/test-chat.ts",
+    "test:e2e:render": "ts-node scripts/e2e-render-test.ts"
   },
   "engines": {
     "node": ">=22"
@@ -28,6 +29,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/node": "^22.18.1",
+    "ts-node": "^10.9.2",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2"
   }
