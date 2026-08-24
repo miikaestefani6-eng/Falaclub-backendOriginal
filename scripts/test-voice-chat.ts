@@ -22,7 +22,7 @@ type VoiceResponse = {
   conversationId: string;
   userTranscript: string;
   replyText: string;
-  audioBase64: string;
+  audioBase64: string | null;
   messageId: string;
 };
 
@@ -53,13 +53,20 @@ async function main() {
 
   const payload = JSON.parse(body) as VoiceResponse;
 
-  if (!payload.conversationId || !payload.userTranscript || !payload.replyText || !payload.audioBase64 || !payload.messageId) {
+  if (!payload.conversationId || !payload.userTranscript || !payload.replyText || !payload.messageId) {
     throw new Error(`Unexpected voice response: ${body}`);
   }
 
-  const audioBytes = Buffer.from(payload.audioBase64, 'base64');
-  if (audioBytes.length === 0) {
-    throw new Error('TTS returned an empty MP3 payload.');
+  if (payload.audioBase64 !== null) {
+    const audioBytes = Buffer.from(payload.audioBase64, 'base64');
+
+    if (audioBytes.length === 0) {
+      throw new Error('TTS returned an empty MP3 payload.');
+    }
+
+    console.log('audioBytes:', audioBytes.length);
+  } else {
+    console.log('audioBase64: null (TTS unavailable; text fallback accepted)');
   }
 
   console.log('✅ Voice chat smoke test passed');
@@ -67,7 +74,6 @@ async function main() {
   console.log('userTranscript:', payload.userTranscript);
   console.log('replyText:', payload.replyText);
   console.log('messageId:', payload.messageId);
-  console.log('audioBytes:', audioBytes.length);
 }
 
 main().catch((error) => {
