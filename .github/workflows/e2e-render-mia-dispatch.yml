@@ -1,0 +1,31 @@
+name: E2E Render Mia
+
+on:
+  workflow_dispatch:
+
+jobs:
+  e2e-render:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Mia branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/mia-chat-service
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Render E2E
+        env:
+          RENDER_API_URL: https://falaclub-backend-oficial.onrender.com
+          SUPABASE_URL: https://elvmyktosxhldduhkxge.supabase.co
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+        run: npm run test:e2e:render
