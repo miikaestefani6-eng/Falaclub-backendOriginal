@@ -1,13 +1,12 @@
 import Groq from 'groq-sdk';
-import OpenAI from 'openai';
 import { env } from '../config/env.js';
 
 const groq = new Groq({ apiKey: env.GROQ_API_KEY });
-const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
 
 const STT_MODEL = 'whisper-large-v3-turbo';
-const TTS_MODEL = 'tts-1';
-const TTS_VOICE = 'nova';
+const TTS_MODEL = 'canopylabs/orpheus-v1-english';
+const TTS_VOICE = 'hannah';
+const TTS_MAX_CHARS = 200;
 
 export class VoiceServiceError extends Error {
   constructor(
@@ -70,15 +69,29 @@ export async function transcribeAudio(audioBuffer: Buffer, filename: string): Pr
 
 export async function synthesizeSpeech(text: string): Promise<Buffer> {
   try {
-    const speech = await openai.audio.speech.create({
+    const normalizedText = text.trim();
+
+    if (!normalizedText) {
+      throw new VoiceServiceError('tts_failed', 'Speech synthesis input is empty');
+    }
+
+    // Orpheus currently accepts up to 200 characters per speech request.
+    // Mia is intentionally concise; truncation keeps TTS non-blocking for the MVP.
+    const speechInput = normalizedText.slice(0, TTS_MAX_CHARS);
+
+    const speech = await groq.audio.speech.create({
       model: TTS_MODEL,
       voice: TTS_VOICE,
-      input: text,
-      response_format: 'mp3',
+      input: speechInput,
+      response_format: 'wav',
     });
 
     return Buffer.from(await speech.arrayBuffer());
   } catch (error) {
+    if (error instanceof VoiceServiceError) {
+      throw error;
+    }
+
     if (isQuotaError(error)) {
       throw new VoiceServiceError('quota_exceeded', 'Text-to-speech quota exceeded');
     }
