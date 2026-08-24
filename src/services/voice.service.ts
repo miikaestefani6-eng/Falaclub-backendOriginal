@@ -117,6 +117,7 @@ export async function synthesizeSpeech(text: string): Promise<Buffer> {
       throw new VoiceServiceError('tts_failed', 'Speech synthesis returned empty audio');
     }
 
+    console.log(`TTS audio generated: ${audio.length} bytes`);
     return audio;
   } catch (error) {
     if (error instanceof VoiceServiceError) {
