@@ -2,6 +2,11 @@ name: E2E Render Mia
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - feature/mia-chat-service
+    paths:
+      - '.github/workflows/e2e-render.yml'
 
 jobs:
   e2e-render:
