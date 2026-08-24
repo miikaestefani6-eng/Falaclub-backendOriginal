@@ -1,5 +1,4 @@
 import Groq from 'groq-sdk';
-import OpenAI from 'openai';
 import { env } from '../config/env.js';
 
 export type Message = {
@@ -7,8 +6,9 @@ export type Message = {
   content: string;
 };
 
-const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
 const groq = new Groq({ apiKey: env.GROQ_API_KEY });
+
+const MIA_CHAT_MODEL = 'openai/gpt-oss-20b';
 
 const MIA_SYSTEM_PROMPT = `
 Você é Mia, a tutora de idiomas do FalaClub.
@@ -47,19 +47,9 @@ function buildMessages(chatHistory: Message[], userMessage: string) {
   ];
 }
 
-async function generateWithOpenAI(messages: ReturnType<typeof buildMessages>) {
-  const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages,
-    temperature: 0.7,
-  });
-
-  return completion.choices[0]?.message?.content?.trim() || null;
-}
-
 async function generateWithGroq(messages: ReturnType<typeof buildMessages>) {
   const completion = await groq.chat.completions.create({
-    model: 'openai/gpt-oss-20b',
+    model: MIA_CHAT_MODEL,
     messages,
     temperature: 0.7,
   });
@@ -74,27 +64,15 @@ export async function generateMiaResponse(
   const messages = buildMessages(chatHistory, userMessage);
 
   try {
-    const response = await generateWithOpenAI(messages);
+    const response = await generateWithGroq(messages);
 
-    if (response) {
-      return response;
+    if (!response) {
+      throw new Error('Groq returned an empty response');
     }
 
-    throw new Error('OpenAI returned an empty response');
-  } catch (openAiError) {
-    console.error('Mia primary provider failed; using Groq fallback.', openAiError);
-
-    try {
-      const fallbackResponse = await generateWithGroq(messages);
-
-      if (!fallbackResponse) {
-        throw new Error('Groq returned an empty response');
-      }
-
-      return fallbackResponse;
-    } catch (groqError) {
-      console.error('Mia fallback provider failed.', groqError);
-      throw new Error('Mia is temporarily unavailable');
-    }
+    return response;
+  } catch (groqError) {
+    console.error('Mia Groq provider failed.', groqError);
+    throw new Error('Mia is temporarily unavailable');
   }
 }
