@@ -1,5 +1,21 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Sparkles } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Bookmark, Loader2, MessageCircleHeart, Volume2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
+import { getStudentProfile, normalizeLanguage } from "@/lib/profile-context";
+import { supabase } from "@/lib/supabase";
+
 export const Route = createFileRoute("/drops")({ component: Drops });
-function Drops() { return <AppShell titulo="Drops" subtitulo="Uma dose de idioma todos os dias"><div className="surface-card p-6"><Sparkles className="size-8 text-accent" /><h2 className="mt-4 font-display text-2xl font-bold">Drop de hoje</h2><p className="mt-2 text-sm text-muted-foreground">Conteúdo rápido para aprender uma expressão, palavra ou curiosidade.</p></div></AppShell>; }
+
+type DailyDrop = { id: string; theme: string; word: string; pronunciation: string | null; translation: string; curiosity: string | null; language: string; color_variant: string };
+const temas = ["Cultura", "Culinária", "Música", "Cinema", "Arte", "Expressões", "Pronúncia", "Hábitos", "Tradições"];
+const fundo = (cor: string) => cor === "warm" ? "bg-gradient-warm" : cor === "ink" ? "bg-gradient-ink" : "bg-gradient-mia";
+
+function Drops() {
+  const [idioma, setIdioma] = useState<string | null>(null);
+  const [drops, setDrops] = useState<DailyDrop[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  useEffect(() => { let ativo = true; (async () => { try { const perfil = await getStudentProfile(); const idiomaPerfil = normalizeLanguage(perfil?.target_language); if (!idiomaPerfil) return; if (ativo) setIdioma(idiomaPerfil); const { data, error } = await supabase.from("daily_drops").select("id, theme, word, pronunciation, translation, curiosity, language, color_variant").eq("language", idiomaPerfil).order("created_at", { ascending: false }); if (error) throw error; if (ativo) setDrops((data ?? []) as DailyDrop[]); } catch (error) { console.error("Erro ao carregar Drops:", error); if (ativo) setDrops([]); } finally { if (ativo) setCarregando(false); } })(); return () => { ativo = false; }; }, []);
+  const titulo = useMemo(() => idioma ? `Sua dose diária de ${idioma.toLowerCase()}` : "Sua dose diária de cultura e vocabulário", [idioma]);
+  return <AppShell titulo="Drops do idioma" subtitulo={carregando ? "Carregando seu idioma..." : titulo}><div className="flex flex-wrap gap-2">{temas.map(t => <span key={t} className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground">{t}</span>)}</div>{carregando ? <div className="flex justify-center py-16"><Loader2 className="size-7 animate-spin text-primary" /></div> : drops.length === 0 ? <div className="surface-card mt-6 p-8 text-center"><p className="font-display text-lg font-bold">Ainda não há Drops para este idioma.</p><p className="mt-2 text-sm text-muted-foreground">Assim que um novo conteúdo for publicado, ele aparecerá aqui.</p></div> : <div className="mt-6 grid gap-5 lg:grid-cols-3">{drops.map(drop => <article key={drop.id} className="surface-card overflow-hidden p-0"><div className={`${fundo(drop.color_variant)} p-6 text-primary-foreground`}><p className="text-xs font-semibold uppercase tracking-[0.16em] opacity-80">{drop.theme}</p><h2 className="mt-2 font-display text-2xl font-bold">{drop.word}</h2>{drop.pronunciation && <p className="text-sm opacity-85">{drop.pronunciation}</p>}</div><div className="p-5"><p className="text-sm font-semibold">{drop.translation}</p>{drop.curiosity && <p className="mt-2 text-sm text-muted-foreground">{drop.curiosity}</p>}<div className="mt-4 flex flex-wrap gap-2"><button className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold text-secondary-foreground"><Volume2 className="size-3.5" /> Ouvir</button><button className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold text-secondary-foreground"><Bookmark className="size-3.5" /> Salvar</button><Link to="/mia" className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"><MessageCircleHeart className="size-3.5" /> Conversar</Link></div></div></article>)}</div>}</AppShell>;
+}
