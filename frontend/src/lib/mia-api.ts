@@ -25,14 +25,13 @@ export async function sendMiaMessage(message: string, conversationId?: string | 
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify({ message, ...(conversationId ? { conversationId } : {}) }),
   });
-  return parseResponse(response) as Promise<{ conversationId: string; reply: string; messageId: string }>;
+  return parseResponse(response) as Promise<{ conversationId: string; reply: string; messageId: string; audioBase64: string }>;
 }
 
 export async function sendMiaVoice(audio: Blob, conversationId?: string | null) {
   const token = await getAccessToken();
   const formData = new FormData();
-  // Backend original espera o campo multipart "file".
-  formData.append("file", audio, "voz-aluno.webm");
+  formData.append("file", audio, audio.type.includes("ogg") ? "voz-aluno.ogg" : audio.type.includes("mp4") ? "voz-aluno.mp4" : "voz-aluno.webm");
   if (conversationId) formData.append("conversationId", conversationId);
   const response = await fetch(`${API_URL}/api/chat/voice`, {
     method: "POST",
@@ -43,7 +42,7 @@ export async function sendMiaVoice(audio: Blob, conversationId?: string | null) 
     conversationId: string;
     userTranscript: string;
     replyText: string;
-    audioBase64: string | null;
+    audioBase64: string;
     messageId: string;
   }>;
 }
