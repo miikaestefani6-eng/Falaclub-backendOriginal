@@ -1,0 +1,21 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ArrowRight, Check, Headphones, Layers, MessageCircleHeart, Sparkles } from "lucide-react";
+import { Logo, MiaFull } from "@/components/brand";
+
+export const Route = createFileRoute("/")({ component: Landing });
+
+const pilares = [
+  [MessageCircleHeart, "💬", "Conversa de verdade", "A Mia puxa assunto, corrige com carinho e nunca deixa você travar."],
+  [Layers, "🧠", "Flashcards que grudam", "Repetição espaçada para o vocabulário virar reflexo."],
+  [Headphones, "🎧", "Biblioteca viva", "Conteúdos filtrados por nível para praticar no seu ritmo."],
+  [Sparkles, "✨", "Drops diários", "Uma dose de cultura, pronúncia e expressões todo dia."],
+] as const;
+const planos = [
+  ["Básico", "25,00", ["Acesso à plataforma", "Mia na plataforma", "Plano de estudos personalizado"]],
+  ["Imersão", "39,90", ["Tudo do Básico", "Mia pelo WhatsApp", "Mais oportunidades de conversação"]],
+  ["Fluência", "59,90", ["Tudo da Imersão", "Ligações com a Mia", "Prática de conversação por voz"]],
+] as const;
+
+function Landing() {
+  return <div className="min-h-screen bg-background"><header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6"><Logo /><Link to="/login" className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold">Já sou aluno</Link></header><main><section className="mx-auto flex max-w-5xl flex-col items-center px-4 pb-14 pt-8 text-center"><span className="rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold uppercase tracking-[.16em] text-muted-foreground">Aprenda • Pratique • Fale</span><h1 className="mt-5 max-w-4xl font-display text-4xl font-extrabold leading-tight sm:text-6xl">Seu clube de <span className="text-gradient-brand">conversa, café</span> e fluência.</h1><p className="mt-5 max-w-2xl text-lg text-muted-foreground">A Mia é professora, mentora e parceira de estudos. Ela conversa com você todos os dias e transforma prática em confiança.</p><div className="mt-7 flex flex-wrap justify-center gap-3"><Link to="/login" className="inline-flex items-center gap-2 rounded-full bg-gradient-brand px-6 py-3 font-semibold text-white shadow-glow">Começar com a Mia <ArrowRight className="size-4" /></Link><Link to="/mia" className="rounded-full border border-border bg-card px-6 py-3 font-semibold">Conhecer a Mia</Link></div><div className="mt-10"><MiaFull className="rounded-3xl border border-border bg-card p-5 shadow-lift" /></div></section><section className="bg-gradient-ink py-14 text-ink-foreground"><div className="mx-auto max-w-6xl px-4 sm:px-6"><h2 className="font-display text-3xl font-bold">Seis habilidades, uma rotina só</h2><div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{pilares.map(([Icon, emoji, title, text]) => <div key={title} className="rounded-2xl bg-white/10 p-5"><Icon className="size-5" /><p className="mt-3 text-2xl">{emoji}</p><h3 className="mt-3 font-bold">{title}</h3><p className="mt-1 text-sm opacity-80">{text}</p></div>)}</div></div></section><section className="mx-auto max-w-6xl px-4 py-16 sm:px-6"><div className="text-center"><span className="text-xs font-bold uppercase tracking-[.16em] text-primary">ESCOLHA SEU CAMINHO</span><h2 className="mt-3 font-display text-3xl font-bold sm:text-4xl">Comece no seu ritmo.</h2></div><div className="mt-10 grid gap-5 lg:grid-cols-3">{planos.map(([name, price, features]) => <article key={name} className="surface-card p-6"><h3 className="font-display text-xl font-bold">{name}</h3><p className="mt-5 font-display text-4xl font-extrabold">R$ {price}<span className="text-sm font-medium text-muted-foreground">/mês</span></p><ul className="mt-6 space-y-3">{features.map((f) => <li key={f} className="flex gap-2 text-sm"><Check className="size-4 text-primary" />{f}</li>)}</ul><Link to="/login" className="mt-7 inline-flex w-full justify-center rounded-full bg-gradient-brand px-5 py-3 text-sm font-bold text-white">Começar <ArrowRight className="ml-2 size-4" /></Link></article>)}</div></section></main><footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">FalaClub — seu clube de conversa, café e fluência.</footer></div>;
+}
