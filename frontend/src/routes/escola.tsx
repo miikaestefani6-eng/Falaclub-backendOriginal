@@ -1,0 +1,6 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { BookOpen, GraduationCap, Users, KeyRound } from "lucide-react";
+import { AppShell, SectionCard, Stat } from "@/components/app-shell";
+import { requireRole } from "@/lib/auth";
+export const Route = createFileRoute("/escola")({ beforeLoad: async () => ({ profile: await requireRole(["school_admin", "super_admin"]) }), component: Escola });
+function Escola() { return <AppShell titulo="CMS Escola" subtitulo="Alunos, professores, licenças e conteúdos"><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><Stat rotulo="Alunos" valor="—" /><Stat rotulo="Professores" valor="—" /><Stat rotulo="Licenças" valor="—" /><Stat rotulo="Conteúdos" valor="—" /></div><div className="mt-5 grid gap-5 md:grid-cols-2"><SectionCard titulo="Gestão pedagógica"><div className="grid gap-2 sm:grid-cols-2">{[[Users,"Alunos"],[GraduationCap,"Professores"],[KeyRound,"Licenças"],[BookOpen,"Conteúdos"]].map(([Icon,label]) => <div key={label as string} className="flex items-center gap-3 rounded-2xl border border-border p-4"><Icon className="size-5 text-primary" /><span className="text-sm font-semibold">{label as string}</span></div>)}</div></SectionCard><SectionCard titulo="Progresso"><p className="text-sm text-muted-foreground">Acompanhamento de evolução por aluno e turma.</p></SectionCard></div></AppShell>; }
