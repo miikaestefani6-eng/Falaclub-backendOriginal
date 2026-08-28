@@ -1,5 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Trophy } from "lucide-react";
-import { AppShell } from "@/components/app-shell";
+import { Award, Flame, Zap } from "lucide-react";
+import { AppShell, SectionCard, Stat } from "@/components/app-shell";
+import { aluno as alunoMock, conquistas, habilidades } from "@/lib/mock-data";
+import { cn } from "@/lib/utils";
+import { getStudentProfile, normalizeLanguage } from "@/lib/profile-context";
+import { supabase } from "@/lib/supabase";
+import { useEffect, useState } from "react";
+
 export const Route = createFileRoute("/progresso")({ component: Progresso });
-function Progresso() { return <AppShell titulo="Progresso" subtitulo="Acompanhe sua evolução"><div className="surface-card p-6"><Trophy className="size-8 text-primary" /><h2 className="mt-4 font-display text-2xl font-bold">Sua evolução</h2><p className="mt-2 text-sm text-muted-foreground">Os indicadores serão alimentados pelo histórico real do Supabase.</p></div></AppShell>; }
+const cefr = ["A1", "A2", "B1", "B2", "C1", "C2"];
+function Progresso() {
+  const [perfil, setPerfil] = useState<any>(null);
+  const [xp, setXp] = useState(alunoMock.xp), [streak, setStreak] = useState(alunoMock.streak), [nivel, setNivel] = useState(alunoMock.nivel);
+  useEffect(() => { (async () => { const p = await getStudentProfile(); setPerfil(p); if (p) { setNivel(p.level?.match(/A1|A2|B1|B2|C1|C2/)?.[0] || p.level || alunoMock.nivel); setStreak(p.streak_count ?? alunoMock.streak); } const { data } = await supabase.from("profiles").select("xp_total").eq("id", (await supabase.auth.getUser()).data.user?.id || "").maybeSingle(); if (data?.xp_total != null) setXp(data.xp_total); })().catch(console.error); }, []);
+  return <AppShell titulo="Progresso" subtitulo="Cada dia praticado é confiança acumulada"><div className="grid gap-4 sm:grid-cols-3"><Stat rotulo="XP total" valor={`${xp}`} delta={`Nível ${nivel}`} /><Stat rotulo="Sequência" valor={`${streak} dias`} delta="Recorde pessoal" /><Stat rotulo="Nível CEFR" valor={nivel} /></div><div className="mt-5 grid gap-5 lg:grid-cols-2"><SectionCard titulo="Habilidades" descricao="As seis frentes que a Mia treina com você"><ul className="space-y-4">{habilidades.map(h => <li key={h.nome}><div className="flex items-center justify-between text-sm"><span className="font-semibold">{h.nome}</span><span className="text-muted-foreground">{h.valor}%</span></div><div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-secondary"><div className="h-full rounded-full bg-gradient-brand" style={{width:`${h.valor}%`}} /></div></li>)}</ul></SectionCard><div className="space-y-5"><SectionCard titulo="Jornada CEFR"><div className="flex items-center gap-2">{cefr.map(n => <span key={n} className={cn("flex-1 rounded-xl px-2 py-3 text-center text-sm font-bold",n===nivel?"bg-gradient-brand text-primary-foreground":"bg-secondary text-secondary-foreground/70")}>{n}</span>)}</div><p className="mt-3 text-sm text-muted-foreground">Seu progresso de nível é atualizado conforme suas atividades.</p></SectionCard><SectionCard titulo="Conquistas"><ul className="grid grid-cols-3 gap-3">{conquistas.map(c => <li key={c.nome} className={cn("rounded-2xl border border-border p-3 text-center",!c.ganha&&"opacity-40")}><span className="text-2xl">{c.icone}</span><p className="mt-1 text-[11px] font-semibold leading-tight">{c.nome}</p></li>)}</ul></SectionCard><SectionCard titulo="Certificados"><div className="flex items-center gap-3 rounded-2xl border border-dashed border-border p-4"><Award className="size-6 text-primary" /><p className="text-sm text-muted-foreground">Seus certificados aparecerão aqui conforme você concluir os níveis.</p></div><div className="mt-3 flex gap-3 text-xs text-muted-foreground"><span className="inline-flex items-center gap-1"><Flame className="size-3.5 text-accent" /> streak conta pontos</span><span className="inline-flex items-center gap-1"><Zap className="size-3.5 text-primary" /> continue praticando</span></div></SectionCard></div></div></AppShell>;
+}
