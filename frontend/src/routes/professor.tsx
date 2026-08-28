@@ -1,0 +1,6 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { BookOpen, GraduationCap, Users, Layers } from "lucide-react";
+import { AppShell, SectionCard, Stat } from "@/components/app-shell";
+import { requireRole } from "@/lib/auth";
+export const Route = createFileRoute("/professor")({ beforeLoad: async () => ({ profile: await requireRole(["teacher", "super_admin"]) }), component: Professor });
+function Professor() { return <AppShell titulo="CMS Professor" subtitulo="Turmas, alunos, conteúdos e progresso"><div className="grid gap-4 sm:grid-cols-3"><Stat rotulo="Alunos" valor="—" /><Stat rotulo="Turmas" valor="—" /><Stat rotulo="Conteúdos" valor="—" /></div><div className="mt-5"><SectionCard titulo="Atalhos"><div className="grid gap-2 sm:grid-cols-3">{[[Users,"Alunos"],[Layers,"Turmas"],[BookOpen,"Conteúdos"]].map(([Icon,label]) => <div key={label as string} className="flex items-center gap-3 rounded-2xl border border-border p-4"><Icon className="size-5 text-primary" /><span className="text-sm font-semibold">{label as string}</span></div>)}</div><p className="mt-4 text-sm text-muted-foreground">O progresso dos alunos será conectado aos dados reais na próxima camada.</p></SectionCard></div></AppShell>; }
