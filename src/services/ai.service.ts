@@ -6,6 +6,11 @@ export type Message = {
   content: string;
 };
 
+export type MiaLearnerContext = {
+  targetLanguage?: string | null;
+  level?: string | null;
+};
+
 const groq = new Groq({ apiKey: env.GROQ_API_KEY });
 
 const MIA_CHAT_MODEL = 'openai/gpt-oss-20b';
@@ -39,9 +44,19 @@ Estilo:
 - ocasionalmente pode usar expressões como “me pegou?” ou “vem cá” quando fizer sentido, sem repetir bordões de forma artificial.
 `.trim();
 
-function buildMessages(chatHistory: Message[], userMessage: string) {
+function buildMessages(chatHistory: Message[], userMessage: string, context?: MiaLearnerContext) {
+  const targetLanguage = context?.targetLanguage?.trim() || 'idioma do aluno';
+  const level = context?.level?.trim() || 'nível não informado';
+  const learnerInstruction = `
+CONTEXTO OBRIGATÓRIO DO ALUNO:
+- Idioma-alvo: ${targetLanguage}
+- Nível: ${level}
+
+Responda no idioma-alvo (${targetLanguage}) por padrão. Não troque para inglês só porque o pedido é curto, porque o idioma da interface é português ou porque não há contexto suficiente. Use português somente para uma explicação pedagógica curta quando necessário.
+`.trim();
+
   return [
-    { role: 'system' as const, content: MIA_SYSTEM_PROMPT },
+    { role: 'system' as const, content: `${MIA_SYSTEM_PROMPT}\n\n${learnerInstruction}` },
     ...chatHistory.slice(-20),
     { role: 'user' as const, content: userMessage },
   ];
@@ -60,8 +75,9 @@ async function generateWithGroq(messages: ReturnType<typeof buildMessages>) {
 export async function generateMiaResponse(
   chatHistory: Message[],
   userMessage: string,
+  context?: MiaLearnerContext,
 ): Promise<string> {
-  const messages = buildMessages(chatHistory, userMessage);
+  const messages = buildMessages(chatHistory, userMessage, context);
 
   try {
     const response = await generateWithGroq(messages);
