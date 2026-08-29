@@ -8,3 +8,8 @@ export const planoDoDia = [
 export const recomendacoesMia = ["Bora praticar um pouquinho hoje? Eu fico com você. ☕"];
 export const drops = [{ id: 1, tema: "Expressões", palavra: "Piece of cake", pronuncia: "/piːs əv keɪk/", traducao: "Muito fácil", curiosidade: "Uma expressão divertida para dizer que algo é fácil.", cor: "mia" }];
 export const mensagensMia = [{ de: "mia", texto: "Oi! Eu sou a Mia. Bora praticar? ☕" }];
+export const filtrosBiblioteca = {
+  idioma: ["Todos", "Francês", "Inglês", "Espanhol"],
+  nivel: ["Todos", "A1", "A2", "B1", "B2", "C1", "C2"],
+  categoria: ["Todos", "Vídeo", "Áudio", "Música", "Podcast", "PDF", "Apostila", "Aula"],
+};
