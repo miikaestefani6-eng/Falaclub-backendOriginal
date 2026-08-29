@@ -1,0 +1,2 @@
+-- Reconciled migration marker for the migration already present in the remote Supabase history.
+-- Schema changes were already applied remotely; this file restores the local migration version.
