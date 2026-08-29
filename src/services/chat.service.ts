@@ -97,8 +97,9 @@ export async function processChatMessage({
   let reply: string;
 
   try {
-    reply = await generateMiaResponse(chatHistory, message);
-  } catch {
+    reply = await generateMiaResponse(userId, chatHistory, message);
+  } catch (error) {
+    console.error('Mia generation failed.', error);
     throw new ChatServiceError(503, 'Mia is temporarily unavailable');
   }
 
