@@ -1,0 +1,2 @@
+-- Reconciled migration marker for the migration already present in the remote Supabase history.
+-- The idempotent Mia chat alignment is retained by 002_mia_chat.sql in this repository.
