@@ -4,8 +4,8 @@ services:
     runtime: node
     plan: free
     region: virginia
-    branch: feature/mia-chat-service
-    buildCommand: npm install && npm run build
+    branch: main
+    buildCommand: npm ci && npm run build
     startCommand: npm start
     healthCheckPath: /health
     envVars:
@@ -23,3 +23,7 @@ services:
         sync: false
       - key: GROQ_API_KEY
         sync: false
+      - key: ELEVENLABS_API_KEY
+        sync: false
+      - key: ELEVENLABS_VOICE_ID
+        value: 21m00Tcm4TlvDq8ikWAM

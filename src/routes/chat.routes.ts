@@ -45,12 +45,9 @@ chatRouter.post('/', requireAuth, async (request, response) => {
       audioBase64 = audioBuffer.toString('base64');
     } catch (error) {
       console.error('Mia TTS failed for text chat', error);
-      const knownError = handleKnownError(error);
-      if (knownError?.statusCode === 503) {
-        response.status(503).json({ error: knownError.message });
-        return;
-      }
-      throw error;
+      // Text is the primary chat response. Voice is an enhancement and must not
+      // turn a successfully persisted reply into an HTTP error or duplicate it
+      // when the learner retries.
     }
 
     response.status(200).json({ ...chatResult, audioBase64 });

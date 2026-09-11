@@ -60,7 +60,7 @@ function MiaChat() {
       setConversationId(result.conversationId);
       setMensagens((m) => [...m, { de: "mia", texto: result.reply, audio: result.audioBase64 }]);
       if (result.audioBase64) tocarAudio(result.audioBase64);
-      else setErro("A Mia respondeu, mas a voz não foi gerada. Verifique o serviço de voz.");
+      else setErro("A Mia respondeu por texto, mas a voz está temporariamente indisponível.");
       void concederXP(10);
     } catch (error) {
       console.error("Erro ao enviar mensagem para a Mia:", error);

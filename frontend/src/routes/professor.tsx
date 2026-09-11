@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { BookOpen, GraduationCap, Users, Layers, Trophy } from "lucide-react";
+import { BookOpen, Users, Layers, Trophy } from "lucide-react";
 import { AppShell, SectionCard, Stat } from "@/components/app-shell";
 import { requireRole } from "@/lib/auth";
 export const Route = createFileRoute("/professor")({ beforeLoad: async () => ({ profile: await requireRole(["teacher", "super_admin"]) }), component: Professor });
