@@ -9,6 +9,7 @@ export type Message = {
 export type MiaLearnerContext = {
   targetLanguage?: string | null;
   level?: string | null;
+  inputMode?: 'text' | 'audio';
 };
 
 const groq = new Groq({ apiKey: env.GROQ_API_KEY });
@@ -54,9 +55,17 @@ CONTEXTO OBRIGATÓRIO DO ALUNO:
 
 Responda no idioma-alvo (${targetLanguage}) por padrão. Não troque para inglês só porque o pedido é curto, porque o idioma da interface é português ou porque não há contexto suficiente. Use português somente para uma explicação pedagógica curta quando necessário.
 `.trim();
+  const audioInstruction = context?.inputMode === 'audio' ? `
+O aluno enviou um áudio, que foi convertido para esta transcrição.
+- Responda somente por escrito.
+- Comece com uma correção breve de gramática, vocabulário e naturalidade.
+- Se a frase já estiver boa, diga isso claramente e, se útil, ofereça uma versão mais natural.
+- Não afirme que avaliou pronúncia, entonação ou sotaque: você recebeu apenas a transcrição.
+- Depois da correção, faça uma pergunta curta para continuar a prática.
+`.trim() : '';
 
   return [
-    { role: 'system' as const, content: `${MIA_SYSTEM_PROMPT}\n\n${learnerInstruction}` },
+    { role: 'system' as const, content: [MIA_SYSTEM_PROMPT, learnerInstruction, audioInstruction].filter(Boolean).join('\n\n') },
     ...chatHistory.slice(-20),
     { role: 'user' as const, content: userMessage },
   ];
