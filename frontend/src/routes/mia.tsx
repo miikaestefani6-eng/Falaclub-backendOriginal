@@ -6,6 +6,7 @@ import { MiaAvatar } from "@/components/brand";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import { concederXP } from "@/lib/gamification";
+import { registerDailyLearningActivity } from "@/lib/activity-tracking";
 import { sendMiaMessage, sendMiaVoice } from "@/lib/mia-api";
 
 export const Route = createFileRoute("/mia")({
@@ -46,6 +47,12 @@ function MiaChat() {
     carregarChat().catch((error) => console.error("Erro ao carregar chat da Mia:", error));
   }, [navigate]);
 
+  function registrarPraticaDaMia() {
+    void registerDailyLearningActivity("speaking_practice", 1).catch((error) => {
+      console.error("Erro ao registrar prática com a Mia:", error);
+    });
+  }
+
   async function enviar(valor: string) {
     const conteudo = valor.trim(); if (!conteudo || loading) return;
     setErro(null); setTexto(""); setMensagens((m) => [...m, { de: "aluno", texto: conteudo }]); setLoading(true);
@@ -54,6 +61,7 @@ function MiaChat() {
       setConversationId(result.conversationId);
       setMensagens((m) => [...m, { de: "mia", texto: result.reply }]);
       void concederXP(10);
+      registrarPraticaDaMia();
     } catch (error) {
       console.error("Erro ao enviar mensagem para a Mia:", error);
       setErro(error instanceof Error ? error.message : "Não consegui falar com a Mia agora.");
@@ -68,6 +76,7 @@ function MiaChat() {
       setConversationId(result.conversationId);
       setMensagens((m) => { const copia = [...m]; const ultimo = copia[copia.length - 1]; if (ultimo?.de === "aluno" && ultimo.texto === "🎤 Processando seu áudio...") copia[copia.length - 1] = { de: "aluno", texto: result.userTranscript }; return [...copia, { de: "mia", texto: result.replyText }]; });
       void concederXP(10);
+      registrarPraticaDaMia();
     } catch (error) { console.error("Erro ao processar áudio:", error); setErro(error instanceof Error ? error.message : "Não consegui processar seu áudio agora."); setMensagens((m) => [...m, { de: "mia", texto: "Não consegui processar seu áudio. Pode tentar novamente? 🎙️" }]); }
     finally { setLoading(false); }
   }

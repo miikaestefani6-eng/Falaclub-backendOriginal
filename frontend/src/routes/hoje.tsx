@@ -4,7 +4,7 @@ import { BookOpen, Check, Flame, Layers3, Loader2, MessageCircle, Play, Sparkles
 import { AppShell, SectionCard } from "@/components/app-shell";
 import { MiaAvatar } from "@/components/brand";
 import { normalizeLanguage } from "@/lib/profile-context";
-import { buildWeeklyStudyPlan, getTodayStudyPlan } from "@/lib/study-plan";
+import { buildWeeklyStudyPlan, getTodayStudyPlan, type StudyPlanItem } from "@/lib/study-plan";
 import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/hoje")({
@@ -31,6 +31,7 @@ function Hoje() {
   const [atividadesHoje, setAtividadesHoje] = useState<AtividadeHoje[]>([]);
   const [dropDoDia, setDropDoDia] = useState<DropDoDia | null>(null);
   const [loading, setLoading] = useState(true);
+  const [salvandoAtividade, setSalvandoAtividade] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
@@ -88,9 +89,34 @@ function Hoje() {
   const completedSkills = useMemo(() => new Set(atividadesHoje.map((atividade) => atividade.skill?.trim().toLowerCase()).filter(Boolean)), [atividadesHoje]);
   const isPlanItemDone = (skillKey: "speaking" | "content" | "vocabulary" | "culture") => {
     if (skillKey === "speaking") return ["fala", "speaking", "speaking_practice"].some((skill) => completedSkills.has(skill));
-    if (skillKey === "vocabulary") return revisoes === 0;
+    if (skillKey === "vocabulary") return revisoes === 0 || completedSkills.has("vocabulary");
     return completedSkills.has(skillKey);
   };
+
+  async function concluirAtividade(item: StudyPlanItem) {
+    if (isPlanItemDone(item.skillKey) || salvandoAtividade) return;
+    setSalvandoAtividade(item.id);
+    setErro(null);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Sessão expirada.");
+      const { error } = await supabase.from("learning_activities").insert({
+        user_id: user.id,
+        skill: item.skillKey,
+        minutes: item.minutes,
+        xp_earned: 0,
+        completed_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+      setAtividadesHoje((atuais) => [...atuais, { skill: item.skillKey, minutes: item.minutes }]);
+      setAlunoData((atual) => ({ ...atual, minutosHoje: atual.minutosHoje + item.minutes }));
+    } catch (error) {
+      console.error("Erro ao concluir atividade do plano:", error);
+      setErro("Não foi possível registrar essa atividade agora. Tente novamente.");
+    } finally {
+      setSalvandoAtividade(null);
+    }
+  }
 
   const nextItem = todayPlan.items.find((item) => !isPlanItemDone(item.skillKey)) ?? todayPlan.items[0];
   const recomendacaoMia = alunoData.minutosHoje >= alunoData.metaMinutos ? "Meta do dia concluída! Se quiser, podemos fazer uma conversa livre. ☕" : `Hoje o foco é ${todayPlan.focus.toLowerCase()}. Você tem ${Math.max(0, alunoData.metaMinutos - alunoData.minutosHoje)} minutos restantes na sua meta. ☕`;
@@ -103,7 +129,7 @@ function Hoje() {
 
       <SectionCard titulo="Prática recomendada" descricao={`Hoje: ${todayPlan.focus}`}><div className="flex items-center justify-between gap-4 rounded-2xl bg-secondary p-4"><div><p className="text-sm font-semibold">{nextItem.title}</p><p className="mt-1 text-xs text-muted-foreground">{nextItem.type} · {nextItem.minutes} min · alinhado ao seu nível e objetivo.</p></div><Link to={nextItem.to} className="shrink-0 rounded-full bg-gradient-brand px-4 py-2 text-sm font-semibold text-primary-foreground">Começar</Link></div></SectionCard>
 
-      <SectionCard titulo="Seu plano de hoje" descricao={alunoData.objetivo ? `Baseado na sua meta: ${alunoData.objetivo}` : "Baseado no seu nível e no tempo disponível"}><ul className="space-y-3">{todayPlan.items.map(item => { const feito = isPlanItemDone(item.skillKey); return <li key={item.id}><Link to={item.to} className="flex items-center gap-3 rounded-2xl border border-border p-3 transition-colors hover:bg-secondary/60"><span className={feito ? "flex size-8 items-center justify-center rounded-full bg-success/15 text-success" : "flex size-8 items-center justify-center rounded-full bg-secondary text-secondary-foreground"}>{feito ? <Check className="size-4" /> : <Play className="size-4" />}</span><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{item.title}</p><p className="text-xs text-muted-foreground">{item.type} · {item.minutes} min</p></div></Link></li>; })}</ul></SectionCard>
+      <SectionCard titulo="Seu plano de hoje" descricao={alunoData.objetivo ? `Baseado na sua meta: ${alunoData.objetivo}` : "Baseado no seu nível e no tempo disponível"}><ul className="space-y-3">{todayPlan.items.map(item => { const feito = isPlanItemDone(item.skillKey); const salvando = salvandoAtividade === item.id; return <li key={item.id} className="rounded-2xl border border-border p-3"><div className="flex items-center gap-3"><span className={feito ? "flex size-8 items-center justify-center rounded-full bg-success/15 text-success" : "flex size-8 items-center justify-center rounded-full bg-secondary text-secondary-foreground"}>{feito ? <Check className="size-4" /> : <Play className="size-4" />}</span><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{item.title}</p><p className="text-xs text-muted-foreground">{item.type} · {item.minutes} min</p></div><Link to={item.to} className="rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold text-secondary-foreground">Abrir</Link></div><div className="mt-3 flex justify-end"><button type="button" disabled={feito || salvando} onClick={() => concluirAtividade(item)} className={feito ? "rounded-full bg-success/15 px-3 py-1.5 text-xs font-semibold text-success" : "rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60"}>{feito ? "Concluído" : salvando ? "Salvando..." : "Marcar como concluído"}</button></div></li>; })}</ul></SectionCard>
 
       <SectionCard titulo="Sua semana" descricao="Uma rotina simples para você não precisar decidir o que estudar todos os dias"><div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{weeklyPlan.map(day => { const ativo = day.weekday === new Date().getDay(); return <div key={day.weekday} className={ativo ? "rounded-2xl border border-primary/40 bg-primary/5 p-3" : "rounded-2xl border border-border p-3"}><p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{day.label}{ativo ? " · hoje" : ""}</p><p className="mt-1 text-sm font-semibold">{day.focus}</p><p className="mt-1 text-xs text-muted-foreground">{day.items.reduce((total, item) => total + item.minutes, 0)} min</p></div>; })}</div></SectionCard>
     </div><div className="space-y-5"><SectionCard titulo="Seu progresso"><p className="text-sm text-muted-foreground">{alunoData.xp} XP no total · próximo marco em {alunoData.xpProximoNivel} XP</p><div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-secondary"><div className="h-full rounded-full bg-gradient-brand transition-all" style={{ width: `${progressoXp}%` }} /></div><Link to="/progresso" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary"><Trophy className="size-4" /> Ver progresso completo</Link></SectionCard><SectionCard titulo="Acesso rápido" descricao="Continue de onde parou"><div className="grid grid-cols-2 gap-2"><Link to="/biblioteca" className="rounded-2xl border border-border p-3 hover:bg-secondary"><BookOpen className="size-5 text-primary" /><p className="mt-2 text-sm font-semibold">Vocabulário</p><p className="text-xs text-muted-foreground">{palavras} palavras</p></Link><Link to="/flashcards" className="rounded-2xl border border-border p-3 hover:bg-secondary"><Layers3 className="size-5 text-primary" /><p className="mt-2 text-sm font-semibold">Flashcards</p><p className="text-xs text-muted-foreground">{revisoes} para revisar</p></Link></div><div className="mt-2 rounded-2xl border border-border p-3"><p className="text-xs text-muted-foreground">Conversas com a Mia</p><p className="font-display text-2xl font-bold">{conversas}</p></div></SectionCard>{dropDoDia ? <SectionCard titulo="Drop de hoje" descricao={dropDoDia.theme}><p className="font-display text-2xl font-bold">{dropDoDia.word}</p>{dropDoDia.pronunciation && <p className="text-sm text-muted-foreground">{dropDoDia.pronunciation}</p>}<p className="mt-2 text-sm font-semibold">{dropDoDia.translation}</p>{dropDoDia.curiosity && <p className="mt-3 text-sm">{dropDoDia.curiosity}</p>}<Link to="/drops" className="mt-4 inline-flex items-center gap-2 rounded-full bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground"><Sparkles className="size-4" /> Ver todos os Drops</Link></SectionCard> : <SectionCard titulo="Drops do idioma"><p className="text-sm text-muted-foreground">Ainda não há um Drop publicado para {alunoData.idioma || "seu idioma"}.</p><Link to="/drops" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary"><Sparkles className="size-4" /> Conferir Drops</Link></SectionCard>}</div></div>
