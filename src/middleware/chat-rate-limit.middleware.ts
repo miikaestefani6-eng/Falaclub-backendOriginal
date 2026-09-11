@@ -1,4 +1,4 @@
-import type { NextFunction, Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import { env } from '../config/env.js';
 import type { AuthenticatedRequest } from './auth.middleware.js';
 
@@ -13,11 +13,12 @@ function pruneExpired(now: number) {
   }
 }
 
-export function chatRateLimit(request: AuthenticatedRequest, response: Response, next: NextFunction) {
+export function chatRateLimit(request: Request, response: Response, next: NextFunction) {
+  const authenticatedRequest = request as AuthenticatedRequest;
   const now = Date.now();
   pruneExpired(now);
 
-  const key = request.user.id;
+  const key = authenticatedRequest.user.id;
   const current = windows.get(key);
 
   if (!current || current.resetAt <= now) {
