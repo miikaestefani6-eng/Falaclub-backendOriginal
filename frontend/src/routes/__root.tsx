@@ -7,7 +7,7 @@ import { requireRole } from "@/lib/auth";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   beforeLoad: ({ location }) => {
-    if (["/hoje", "/mia", "/biblioteca", "/flashcards", "/drops", "/progresso"].includes(location.pathname)) return requireRole(["student", "super_admin"]);
+    if (["/hoje", "/mia", "/biblioteca", "/flashcards", "/drops", "/progresso", "/perfil"].includes(location.pathname)) return requireRole(["student", "super_admin"]);
     return undefined;
   },
   head: () => ({ meta: [{ charSet: "utf-8" }, { name: "viewport", content: "width=device-width, initial-scale=1" }, { title: "FalaClub — Aprenda, pratique, fale" }, { name: "description", content: "Plataforma de idiomas com a Mia." }], links: [{ rel: "stylesheet", href: appCss }, { rel: "preconnect", href: "https://fonts.googleapis.com" }, { rel: "preconnect", href: "https://fonts.gstatic.com" }, { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Figtree:wght@400;500;600;700&display=swap" }, { rel: "icon", type: "image/png", href: "/favicon.png" }] }),
