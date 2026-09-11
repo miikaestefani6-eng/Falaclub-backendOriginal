@@ -8,6 +8,11 @@ export class ChatServiceError extends Error {
 export type ProcessChatInput = { userId: string; message: string; conversationId?: string; inputMode?: 'text' | 'audio' };
 export type ProcessChatResult = { conversationId: string; reply: string; messageId: string };
 
+async function cleanupUserMessage(messageId: string) {
+  const { error } = await supabaseAdmin.from('messages').delete().eq('id', messageId);
+  if (error) console.warn('Could not clean up orphan user message', error);
+}
+
 export async function processChatMessage({ userId, message, conversationId, inputMode = 'text' }: ProcessChatInput): Promise<ProcessChatResult> {
   let activeConversationId: string;
   if (conversationId) {
@@ -25,7 +30,10 @@ export async function processChatMessage({ userId, message, conversationId, inpu
   if (userMessageError || !savedUserMessage) throw new ChatServiceError(500, 'Could not save user message');
 
   const { data: recentMessages, error: historyError } = await supabaseAdmin.from('messages').select('id, sender, content, created_at').eq('conversation_id', activeConversationId).order('created_at', { ascending: false }).limit(21);
-  if (historyError) throw new ChatServiceError(500, 'Could not load conversation history');
+  if (historyError) {
+    await cleanupUserMessage(savedUserMessage.id);
+    throw new ChatServiceError(500, 'Could not load conversation history');
+  }
 
   const chatHistory: Message[] = (recentMessages ?? []).filter((item) => item.id !== savedUserMessage.id).slice(0, 20).reverse().filter((item): item is typeof item & { sender: 'user' | 'assistant' } => item.sender === 'user' || item.sender === 'assistant').map((item) => ({ role: item.sender, content: item.content }));
 
@@ -36,11 +44,15 @@ export async function processChatMessage({ userId, message, conversationId, inpu
   try {
     reply = await generateMiaResponse(chatHistory, message, { targetLanguage: learnerProfile?.target_language, level: learnerProfile?.level, inputMode });
   } catch {
+    await cleanupUserMessage(savedUserMessage.id);
     throw new ChatServiceError(503, 'Mia is temporarily unavailable');
   }
 
   const { data: savedMiaMessage, error: miaMessageError } = await supabaseAdmin.from('messages').insert({ conversation_id: activeConversationId, sender: 'assistant', content: reply }).select('id').single();
-  if (miaMessageError || !savedMiaMessage) throw new ChatServiceError(500, 'Could not save Mia response');
+  if (miaMessageError || !savedMiaMessage) {
+    await cleanupUserMessage(savedUserMessage.id);
+    throw new ChatServiceError(500, 'Could not save Mia response');
+  }
 
   return { conversationId: activeConversationId, reply, messageId: savedMiaMessage.id };
 }
