@@ -53,6 +53,10 @@ function Hoje() {
       ]);
 
       if (profileResult.error) throw profileResult.error;
+      if (flashcardsResult.error) throw flashcardsResult.error;
+      if (vocabularyResult.error) throw vocabularyResult.error;
+      if (conversationsResult.error) throw conversationsResult.error;
+      if (activitiesResult.error) throw activitiesResult.error;
       const profile = profileResult.data;
       if (!profile?.full_name || !profile?.target_language || !profile?.level) { await navigate({ to: "/onboarding" }); return; }
 
