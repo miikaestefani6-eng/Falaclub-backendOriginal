@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { requireAuth, type AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import { audioUpload } from '../middleware/audio-upload.middleware.js';
+import { chatRateLimit } from '../middleware/chat-rate-limit.middleware.js';
 import { ChatServiceError, processChatMessage } from '../services/chat.service.js';
 import { transcribeAudio, VoiceServiceError } from '../services/voice.service.js';
 
@@ -26,7 +27,7 @@ function handleKnownError(error: unknown) {
   return null;
 }
 
-chatRouter.post('/', requireAuth, async (request, response) => {
+chatRouter.post('/', requireAuth, chatRateLimit, async (request, response) => {
   try {
     const parsed = chatBodySchema.safeParse(request.body);
     if (!parsed.success) {
@@ -48,7 +49,7 @@ chatRouter.post('/', requireAuth, async (request, response) => {
   }
 });
 
-chatRouter.post('/voice', requireAuth, audioUpload, async (request, response) => {
+chatRouter.post('/voice', requireAuth, chatRateLimit, audioUpload, async (request, response) => {
   try {
     const parsed = voiceBodySchema.safeParse(request.body);
     if (!parsed.success) {
