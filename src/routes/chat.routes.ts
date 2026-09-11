@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { requireAuth, type AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import { audioUpload } from '../middleware/audio-upload.middleware.js';
 import { ChatServiceError, processChatMessage } from '../services/chat.service.js';
-import { synthesizeSpeech, transcribeAudio, VoiceServiceError } from '../services/voice.service.js';
+import { transcribeAudio, VoiceServiceError } from '../services/voice.service.js';
 
 export const chatRouter = Router();
 
@@ -15,8 +15,6 @@ const chatBodySchema = z.object({
 const voiceBodySchema = z.object({
   conversationId: z.preprocess((value) => (value === '' || value === null ? undefined : value), z.string().uuid().optional()),
 });
-
-const voiceFixtureSchema = z.object({ text: z.string().trim().min(1).max(500) });
 
 function handleKnownError(error: unknown) {
   if (error instanceof ChatServiceError) return { statusCode: error.statusCode, message: error.message };
@@ -38,22 +36,7 @@ chatRouter.post('/', requireAuth, async (request, response) => {
 
     const { user } = request as AuthenticatedRequest;
     const chatResult = await processChatMessage({ userId: user.id, conversationId: parsed.data.conversationId, message: parsed.data.message });
-
-    let audioBase64: string | null = null;
-    try {
-      const audioBuffer = await synthesizeSpeech(chatResult.reply);
-      audioBase64 = audioBuffer.toString('base64');
-    } catch (error) {
-      console.error('Mia TTS failed for text chat', error);
-      const knownError = handleKnownError(error);
-      if (knownError?.statusCode === 503) {
-        response.status(503).json({ error: knownError.message });
-        return;
-      }
-      throw error;
-    }
-
-    response.status(200).json({ ...chatResult, audioBase64 });
+    response.status(200).json(chatResult);
   } catch (error) {
     const knownError = handleKnownError(error);
     if (knownError) {
@@ -61,30 +44,6 @@ chatRouter.post('/', requireAuth, async (request, response) => {
       return;
     }
     console.error('Unexpected chat route error', error);
-    response.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-chatRouter.post('/voice/test-fixture', requireAuth, async (request, response) => {
-  if (process.env.VOICE_E2E_FIXTURE_ENABLED !== 'true') {
-    response.status(404).json({ error: 'Not found' });
-    return;
-  }
-  try {
-    const parsed = voiceFixtureSchema.safeParse(request.body);
-    if (!parsed.success) {
-      response.status(400).json({ error: 'Invalid fixture text' });
-      return;
-    }
-    const audio = await synthesizeSpeech(parsed.data.text);
-    response.status(200).json({ audioBase64: audio.toString('base64') });
-  } catch (error) {
-    const knownError = handleKnownError(error);
-    if (knownError) {
-      response.status(knownError.statusCode).json({ error: knownError.message });
-      return;
-    }
-    console.error('Unexpected voice fixture route error', error);
     response.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -109,13 +68,11 @@ chatRouter.post('/voice', requireAuth, audioUpload, async (request, response) =>
     }
 
     const chatResult = await processChatMessage({ userId: user.id, conversationId: parsed.data.conversationId, message: userTranscript });
-    const audioBuffer = await synthesizeSpeech(chatResult.reply);
 
     response.status(200).json({
       conversationId: chatResult.conversationId,
       userTranscript,
       replyText: chatResult.reply,
-      audioBase64: audioBuffer.toString('base64'),
       messageId: chatResult.messageId,
     });
   } catch (error) {

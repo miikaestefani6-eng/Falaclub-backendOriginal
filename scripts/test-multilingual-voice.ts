@@ -1,6 +1,9 @@
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
-import { writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const API_BASE_URL = (
   process.env.RENDER_API_URL ??
@@ -37,12 +40,7 @@ type VoiceResponse = {
   conversationId: string;
   userTranscript: string;
   replyText: string;
-  audioBase64: string | null;
   messageId: string;
-};
-
-type FixtureResponse = {
-  audioBase64: string;
 };
 
 const CASES: LanguageCase[] = [
@@ -121,53 +119,28 @@ function assertReplyLanguage(language: LanguageCase, replyText: string) {
   }
 }
 
-function assertMp3(buffer: Buffer, language: LanguageCase) {
-  if (buffer.length < 1_000) {
-    throw new Error(`[${language.code.toUpperCase()}] MP3 payload is too small (${buffer.length} bytes).`);
+function createLocalSpeechFixture(language: LanguageCase) {
+  const voices: Record<LanguageCode, string> = { en: 'en-us', es: 'es', fr: 'fr-fr', pt: 'pt-br' };
+  const directory = mkdtempSync(join(tmpdir(), 'falaclub-voice-'));
+  const outputPath = join(directory, `${language.code}.wav`);
+  try {
+    execFileSync('espeak', ['-v', voices[language.code], '-w', outputPath, language.phrase]);
+    return readFileSync(outputPath);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
   }
-
-  const hasId3 = buffer.subarray(0, 3).toString('ascii') === 'ID3';
-  const hasFrameSync = buffer[0] === 0xff && (buffer[1] & 0xe0) === 0xe0;
-
-  if (!hasId3 && !hasFrameSync) {
-    throw new Error(`[${language.code.toUpperCase()}] TTS payload does not look like a valid MP3.`);
-  }
-}
-
-async function createNaturalSpeechFixture(language: LanguageCase, accessToken: string) {
-  const response = await fetch(`${API_BASE_URL}/api/chat/voice/test-fixture`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ text: language.phrase }),
-  });
-
-  const body = await response.text();
-
-  if (!response.ok) {
-    throw new Error(
-      `[${language.code.toUpperCase()}] Could not create natural voice fixture (${response.status}): ${body}`,
-    );
-  }
-
-  const payload = JSON.parse(body) as FixtureResponse;
-  const mp3 = Buffer.from(payload.audioBase64, 'base64');
-  assertMp3(mp3, language);
-  return mp3;
 }
 
 async function testLanguage(language: LanguageCase, accessToken: string) {
   console.log(`\n▶ Testing ${language.label} (${language.code.toUpperCase()})`);
   console.log(`Input: ${language.phrase}`);
 
-  const inputAudio = await createNaturalSpeechFixture(language, accessToken);
+  const inputAudio = createLocalSpeechFixture(language);
   const form = new FormData();
   form.append(
     'file',
-    new Blob([inputAudio], { type: 'audio/mpeg' }),
-    `input-${language.code}.mp3`,
+    new Blob([inputAudio], { type: 'audio/wav' }),
+    `input-${language.code}.wav`,
   );
 
   const response = await fetch(`${API_BASE_URL}/api/chat/voice`, {
@@ -198,20 +171,9 @@ async function testLanguage(language: LanguageCase, accessToken: string) {
   assertTranscript(language, payload.userTranscript);
   assertReplyLanguage(language, payload.replyText);
 
-  if (!payload.audioBase64) {
-    throw new Error(`[${language.code.toUpperCase()}] audioBase64 is null. TTS is required for this E2E.`);
-  }
-
-  const mp3 = Buffer.from(payload.audioBase64, 'base64');
-  assertMp3(mp3, language);
-
-  const outputPath = `test-${language.code}.mp3`;
-  writeFileSync(outputPath, mp3);
-
   console.log(`✅ ${language.code.toUpperCase()} passed`);
   console.log(`   userTranscript: ${payload.userTranscript}`);
   console.log(`   replyText: ${payload.replyText}`);
-  console.log(`   MP3: ${outputPath} (${mp3.length} bytes)`);
   console.log(`   conversationId: ${payload.conversationId}`);
 }
 

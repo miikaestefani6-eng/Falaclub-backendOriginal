@@ -3,7 +3,7 @@ import { Award, Flame, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AppShell, SectionCard, Stat } from "@/components/app-shell";
 import { cn } from "@/lib/utils";
-import { getStudentProfile, normalizeLanguage, normalizeLevel } from "@/lib/profile-context";
+import { normalizeLanguage, normalizeLevel } from "@/lib/profile-context";
 import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/progresso")({ component: Progresso });

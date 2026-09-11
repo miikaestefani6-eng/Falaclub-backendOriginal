@@ -20,3 +20,31 @@ API responsável pelo núcleo de serviços do aplicativo, incluindo autenticaç�
 4. Execute `npm run dev`.
 
 > Nunca envie `.env`, chaves privadas ou tokens para o GitHub.
+
+## Estrutura canônica
+
+Este repositório reúne a API, o frontend em `frontend/` e as migrations do
+Supabase. A branch `main` é a fonte de verdade do FalaClub.
+
+Na plataforma, o aluno pode enviar texto ou áudio, e a Mia sempre responde por
+escrito. Respostas em áudio da Mia pertencem exclusivamente ao canal WhatsApp.
+
+## Verificações locais
+
+Backend:
+
+```bash
+npm ci
+npm run typecheck
+npm run build
+```
+
+Frontend:
+
+```bash
+cd frontend
+cp .env.example .env
+npm ci
+npm run lint
+npm run build
+```

@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Check, Headphones, Layers, MessageCircleHeart, Sparkles, Brain, Mic2, BookOpen, PenLine } from "lucide-react";
+import { ArrowRight, Check, Headphones, Layers, MessageCircleHeart, Brain, Mic2, BookOpen, PenLine } from "lucide-react";
 import { Logo, MiaFull } from "@/components/brand";
 
 export const Route = createFileRoute("/")({

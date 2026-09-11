@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Mic, Send, Square, Volume2 } from "lucide-react";
+import { Loader2, Mic, Send, Square } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { MiaAvatar } from "@/components/brand";
 import { cn } from "@/lib/utils";
@@ -9,11 +9,11 @@ import { concederXP } from "@/lib/gamification";
 import { sendMiaMessage, sendMiaVoice } from "@/lib/mia-api";
 
 export const Route = createFileRoute("/mia")({
-  head: () => ({ meta: [{ title: "Falar com a Mia — FalaClub" }, { name: "description", content: "Converse com a Mia, sua professora de idiomas com IA, e treine fala e escuta." }] }),
+  head: () => ({ meta: [{ title: "Conversar com a Mia — FalaClub" }, { name: "description", content: "Converse por mensagem com a Mia, sua professora de idiomas com IA." }] }),
   component: MiaChat,
 });
 
-type ChatMessage = { de: "aluno" | "mia"; texto: string; audio?: string | null };
+type ChatMessage = { de: "aluno" | "mia"; texto: string };
 type PerfilAluno = { full_name?: string; target_language?: string; level?: string; goal?: string; daily_minutes?: number; interests?: string[]; xp_total?: number; streak_count?: number; recent_activities?: Array<{ activity_type?: string; skill?: string; language?: string; level?: string; minutes?: number; xp_earned?: number; completed_at?: string; metadata?: Record<string, unknown> | null }> };
 
 function MiaChat() {
@@ -46,21 +46,13 @@ function MiaChat() {
     carregarChat().catch((error) => console.error("Erro ao carregar chat da Mia:", error));
   }, [navigate]);
 
-  function tocarAudio(audioData: string) {
-    const src = audioData.startsWith("http") ? audioData : `data:audio/mpeg;base64,${audioData}`;
-    const audio = new Audio(src);
-    audio.play().catch((error) => console.error("Erro ao reproduzir áudio da Mia:", error));
-  }
-
   async function enviar(valor: string) {
     const conteudo = valor.trim(); if (!conteudo || loading) return;
     setErro(null); setTexto(""); setMensagens((m) => [...m, { de: "aluno", texto: conteudo }]); setLoading(true);
     try {
       const result = await sendMiaMessage(conteudo, conversationId);
       setConversationId(result.conversationId);
-      setMensagens((m) => [...m, { de: "mia", texto: result.reply, audio: result.audioBase64 }]);
-      if (result.audioBase64) tocarAudio(result.audioBase64);
-      else setErro("A Mia respondeu, mas a voz não foi gerada. Verifique o serviço de voz.");
+      setMensagens((m) => [...m, { de: "mia", texto: result.reply }]);
       void concederXP(10);
     } catch (error) {
       console.error("Erro ao enviar mensagem para a Mia:", error);
@@ -74,8 +66,7 @@ function MiaChat() {
     try {
       const result = await sendMiaVoice(blob, conversationId);
       setConversationId(result.conversationId);
-      setMensagens((m) => { const copia = [...m]; const ultimo = copia[copia.length - 1]; if (ultimo?.de === "aluno" && ultimo.texto === "🎤 Processando seu áudio...") copia[copia.length - 1] = { de: "aluno", texto: result.userTranscript }; return [...copia, { de: "mia", texto: result.replyText, audio: result.audioBase64 }]; });
-      if (result.audioBase64) tocarAudio(result.audioBase64); else setErro("A Mia respondeu, mas a voz não foi gerada. Verifique o serviço de voz.");
+      setMensagens((m) => { const copia = [...m]; const ultimo = copia[copia.length - 1]; if (ultimo?.de === "aluno" && ultimo.texto === "🎤 Processando seu áudio...") copia[copia.length - 1] = { de: "aluno", texto: result.userTranscript }; return [...copia, { de: "mia", texto: result.replyText }]; });
       void concederXP(10);
     } catch (error) { console.error("Erro ao processar áudio:", error); setErro(error instanceof Error ? error.message : "Não consegui processar seu áudio agora."); setMensagens((m) => [...m, { de: "mia", texto: "Não consegui processar seu áudio. Pode tentar novamente? 🎙️" }]); }
     finally { setLoading(false); }
@@ -96,7 +87,8 @@ function MiaChat() {
   }
 
   function stopRecording() { if (mediaRecorderRef.current?.state === "recording") { mediaRecorderRef.current.stop(); setIsRecording(false); } }
-  const sugestoes = perfilAluno.goal?.includes("Viajar") ? ["Treinar na imigração ✈️", "Pedir comida no restaurante 🍽️", "Perguntar direções 🗺️"] : perfilAluno.goal?.includes("Trabalho") ? ["Simular reunião 💼", "Apresentação pessoal 🤝", "Responder e-mail profissional 📧"] : ["Treinar conversa livre 🗣️", "Corrigir minha pronúncia 🎙️", "Aprender gírias do dia a dia ✨"];
 
-  return <AppShell titulo="Falar com a Mia" subtitulo="Conversa guiada, correção gentil e zero julgamento"><div className="surface-card flex h-[calc(100vh-16rem)] min-h-[26rem] flex-col overflow-hidden p-0"><div className="flex items-center gap-3 border-b border-border bg-gradient-mia p-4 text-primary-foreground"><MiaAvatar className="ring-0" /><div><p className="text-sm font-bold">Mia</p><p className="text-xs opacity-85">{isRecording ? "Gravando sua voz... 🎙️" : loading ? "Mia está processando... ☕" : perfilAluno.target_language ? `online · praticando ${perfilAluno.target_language} (${perfilAluno.level || "A1"})` : "online · praticando com você"}</p></div></div>{erro && <div className="border-b border-red-500/20 bg-red-500/10 px-4 py-2 text-xs text-red-500">{erro}</div>}<div className="flex-1 space-y-3 overflow-y-auto p-4">{mensagens.length === 0 && !loading ? <div className="flex h-full items-center justify-center p-6 text-center"><div className="max-w-md"><MiaAvatar className="mx-auto size-14 ring-0" /><p className="mt-3 font-display text-lg font-bold">Quando quiser, pode começar. ☕</p><p className="mt-1 text-sm text-muted-foreground">Escreva uma mensagem ou escolha uma prática abaixo. A conversa será carregada e salva no seu histórico real.</p></div></div> : mensagens.map((m, i) => <div key={`${i}-${m.texto}`} className={cn("flex gap-2", m.de === "aluno" ? "justify-end" : "justify-start")}>{m.de === "mia" ? <MiaAvatar className="size-8 ring-0" /> : null}<div className="flex max-w-[80%] flex-col gap-1"><p className={cn("text-sm leading-relaxed", m.de === "aluno" ? "rounded-2xl rounded-br-sm bg-primary px-4 py-2.5 text-primary-foreground" : "rounded-2xl rounded-bl-sm bg-secondary px-4 py-2.5 text-foreground")}>{m.texto}</p>{m.audio ? <button onClick={() => tocarAudio(m.audio!)} className="flex self-start items-center gap-1 px-1 text-xs text-muted-foreground hover:text-primary"><Volume2 className="size-3" /> Ouvir novamente</button> : null}</div></div>)}{loading && <div className="flex items-center gap-2 text-xs text-muted-foreground"><MiaAvatar className="size-6 ring-0" /><span className="flex items-center gap-1">Mia está pensando... <Loader2 className="size-3 animate-spin" /></span></div>}</div><div className="border-t border-border p-3"><div className="mb-2 flex flex-wrap gap-2">{sugestoes.map((s) => <button key={s} disabled={loading || isRecording} onClick={() => void enviar(s)} className="rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold text-secondary-foreground disabled:opacity-50">{s}</button>)}</div><form onSubmit={(e) => { e.preventDefault(); void enviar(texto); }} className="flex items-center gap-2"><input value={texto} disabled={loading || isRecording} onChange={(e) => setTexto(e.target.value)} placeholder={isRecording ? "Gravando áudio..." : "Escreva ou fale com a Mia..."} className="h-11 flex-1 rounded-full border border-input bg-background px-4 text-sm outline-none focus:border-primary disabled:opacity-50" /><button type="button" aria-label={isRecording ? "Parar gravação" : "Falar"} disabled={loading} onClick={isRecording ? stopRecording : startRecording} className={cn("flex size-11 items-center justify-center rounded-full border transition-colors", isRecording ? "animate-pulse border-red-600 bg-red-500 text-white" : "border-input text-muted-foreground hover:text-primary")}>{isRecording ? <Square className="size-4 fill-white" /> : <Mic className="size-4" />}</button><button type="submit" aria-label="Enviar" disabled={loading || !texto.trim() || isRecording} className="flex size-11 items-center justify-center rounded-full bg-gradient-brand text-primary-foreground disabled:opacity-50">{loading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}</button></form></div></div></AppShell>;
+  const sugestoes = perfilAluno.goal?.includes("Viajar") ? ["Treinar na imigração ✈️", "Pedir comida no restaurante 🍽️", "Perguntar direções 🗺️"] : perfilAluno.goal?.includes("Trabalho") ? ["Simular reunião 💼", "Apresentação pessoal 🤝", "Responder e-mail profissional 📧"] : ["Treinar conversa livre 🗣️", "Corrigir meu áudio por escrito 🎙️", "Aprender gírias do dia a dia ✨"];
+
+  return <AppShell titulo="Conversar com a Mia" subtitulo="Envie texto ou áudio e receba a correção por escrito"><div className="surface-card flex h-[calc(100vh-16rem)] min-h-[26rem] flex-col overflow-hidden p-0"><div className="flex items-center gap-3 border-b border-border bg-gradient-mia p-4 text-primary-foreground"><MiaAvatar className="ring-0" /><div><p className="text-sm font-bold">Mia</p><p className="text-xs opacity-85">{isRecording ? "Ouvindo seu áudio... 🎙️" : loading ? "Mia está escrevendo... ☕" : perfilAluno.target_language ? `online · praticando ${perfilAluno.target_language} (${perfilAluno.level || "A1"})` : "online · praticando com você"}</p></div></div>{erro && <div className="border-b border-red-500/20 bg-red-500/10 px-4 py-2 text-xs text-red-500">{erro}</div>}<div className="flex-1 space-y-3 overflow-y-auto p-4">{mensagens.length === 0 && !loading ? <div className="flex h-full items-center justify-center p-6 text-center"><div className="max-w-md"><MiaAvatar className="mx-auto size-14 ring-0" /><p className="mt-3 font-display text-lg font-bold">Quando quiser, pode começar. ☕</p><p className="mt-1 text-sm text-muted-foreground">Escreva ou envie um áudio. A Mia responderá por escrito e salvará a conversa no seu histórico.</p></div></div> : mensagens.map((m, i) => <div key={`${i}-${m.texto}`} className={cn("flex gap-2", m.de === "aluno" ? "justify-end" : "justify-start")}>{m.de === "mia" ? <MiaAvatar className="size-8 ring-0" /> : null}<div className="flex max-w-[80%] flex-col gap-1"><p className={cn("text-sm leading-relaxed", m.de === "aluno" ? "rounded-2xl rounded-br-sm bg-primary px-4 py-2.5 text-primary-foreground" : "rounded-2xl rounded-bl-sm bg-secondary px-4 py-2.5 text-foreground")}>{m.texto}</p></div></div>)}{loading && <div className="flex items-center gap-2 text-xs text-muted-foreground"><MiaAvatar className="size-6 ring-0" /><span className="flex items-center gap-1">Mia está escrevendo... <Loader2 className="size-3 animate-spin" /></span></div>}</div><div className="border-t border-border p-3"><div className="mb-2 flex flex-wrap gap-2">{sugestoes.map((s) => <button key={s} disabled={loading || isRecording} onClick={() => void enviar(s)} className="rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold text-secondary-foreground disabled:opacity-50">{s}</button>)}</div><form onSubmit={(e) => { e.preventDefault(); void enviar(texto); }} className="flex items-center gap-2"><input value={texto} disabled={loading || isRecording} onChange={(e) => setTexto(e.target.value)} placeholder={isRecording ? "Gravando seu áudio..." : "Escreva uma mensagem para a Mia..."} className="h-11 flex-1 rounded-full border border-input bg-background px-4 text-sm outline-none focus:border-primary disabled:opacity-50" /><button type="button" aria-label={isRecording ? "Parar gravação" : "Enviar áudio"} disabled={loading} onClick={isRecording ? stopRecording : startRecording} className={cn("flex size-11 items-center justify-center rounded-full border transition-colors", isRecording ? "animate-pulse border-red-600 bg-red-500 text-white" : "border-input text-muted-foreground hover:text-primary")}>{isRecording ? <Square className="size-4 fill-white" /> : <Mic className="size-4" />}</button><button type="submit" aria-label="Enviar mensagem" disabled={loading || !texto.trim() || isRecording} className="flex size-11 items-center justify-center rounded-full bg-gradient-brand text-primary-foreground disabled:opacity-50">{loading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}</button></form></div></div></AppShell>;
 }

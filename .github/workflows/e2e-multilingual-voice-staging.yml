@@ -58,16 +58,3 @@ jobs:
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
         run: npm run test:voice:multilingual
-
-      - name: Upload multilingual MP3 evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: multilingual-voice-mp3
-          path: |
-            test-en.mp3
-            test-es.mp3
-            test-fr.mp3
-            test-pt.mp3
-          if-no-files-found: warn
-          retention-days: 7
