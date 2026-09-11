@@ -5,10 +5,10 @@ export class ChatServiceError extends Error {
   constructor(public statusCode: number, message: string) { super(message); }
 }
 
-export type ProcessChatInput = { userId: string; message: string; conversationId?: string };
+export type ProcessChatInput = { userId: string; message: string; conversationId?: string; inputMode?: 'text' | 'audio' };
 export type ProcessChatResult = { conversationId: string; reply: string; messageId: string };
 
-export async function processChatMessage({ userId, message, conversationId }: ProcessChatInput): Promise<ProcessChatResult> {
+export async function processChatMessage({ userId, message, conversationId, inputMode = 'text' }: ProcessChatInput): Promise<ProcessChatResult> {
   let activeConversationId: string;
   if (conversationId) {
     const { data: existingConversation, error: conversationError } = await supabaseAdmin.from('conversations').select('id').eq('id', conversationId).eq('user_id', userId).maybeSingle();
@@ -34,7 +34,7 @@ export async function processChatMessage({ userId, message, conversationId }: Pr
 
   let reply: string;
   try {
-    reply = await generateMiaResponse(chatHistory, message, { targetLanguage: learnerProfile?.target_language, level: learnerProfile?.level });
+    reply = await generateMiaResponse(chatHistory, message, { targetLanguage: learnerProfile?.target_language, level: learnerProfile?.level, inputMode });
   } catch {
     throw new ChatServiceError(503, 'Mia is temporarily unavailable');
   }
