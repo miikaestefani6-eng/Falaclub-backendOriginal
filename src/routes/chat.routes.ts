@@ -21,7 +21,7 @@ function handleKnownError(error: unknown) {
   if (error instanceof VoiceServiceError) {
     if (error.code === 'stt_failed') return { statusCode: 400, message: 'Audio could not be transcribed' };
     if (error.code === 'quota_exceeded' || error.code === 'timeout') return { statusCode: 503, message: 'Voice service is temporarily unavailable' };
-    return { statusCode: 503, message: 'Speech synthesis failed' };
+    return { statusCode: 503, message: 'Voice service is temporarily unavailable' };
   }
   return null;
 }
@@ -67,7 +67,7 @@ chatRouter.post('/voice', requireAuth, audioUpload, async (request, response) =>
       return;
     }
 
-    const chatResult = await processChatMessage({ userId: user.id, conversationId: parsed.data.conversationId, message: userTranscript });
+    const chatResult = await processChatMessage({ userId: user.id, conversationId: parsed.data.conversationId, message: userTranscript, inputMode: 'audio' });
 
     response.status(200).json({
       conversationId: chatResult.conversationId,
