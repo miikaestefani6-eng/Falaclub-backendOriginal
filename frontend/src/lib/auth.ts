@@ -12,6 +12,8 @@ type Profile = {
   class_id: string | null;
   target_language: string | null;
   level: string | null;
+  goal: string | null;
+  daily_minutes: number | null;
   streak_count: number | null;
 };
 
@@ -26,7 +28,7 @@ const ROLE_HOME: Record<UserRole, "/hoje" | "/professor" | "/escola" | "/master"
 export async function getCurrentProfile(): Promise<Profile | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
-  const { data, error } = await supabase.from("profiles").select("id,full_name,role,school_id,class_id,target_language,level,streak_count").eq("id", user.id).maybeSingle();
+  const { data, error } = await supabase.from("profiles").select("id,full_name,role,school_id,class_id,target_language,level,goal,daily_minutes,streak_count").eq("id", user.id).maybeSingle();
   if (error) throw error;
   return (data as Profile | null) ?? null;
 }
