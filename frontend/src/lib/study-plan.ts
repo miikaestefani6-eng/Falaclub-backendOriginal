@@ -72,7 +72,10 @@ export function buildWeeklyStudyPlan({ level, goal, dailyMinutes }: BuildStudyPl
     ? contentItem("sat-immersion", "Imersão livre: série, música, vídeo ou podcast")
     : contentItem("sat-content", "Conteúdo leve no idioma que você está estudando");
 
-  const sundayPrimary = vocabularyItem("sun-review", "Revisão leve do vocabulário da semana");
+  const sundayPrimary: StudyPlanItem = {
+    ...vocabularyItem("sun-review", "Revisão leve do vocabulário da semana"),
+    minutes: primaryMinutes + secondaryMinutes,
+  };
 
   return [
     { weekday: 1, label: dayLabels[1], focus: "Base da semana", items: [mondayPrimary, vocabularyItem("mon-vocab")] },
