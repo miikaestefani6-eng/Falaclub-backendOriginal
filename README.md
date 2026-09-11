@@ -26,6 +26,9 @@ API responsável pelo núcleo de serviços do aplicativo, incluindo autenticaç�
 Este repositório reúne a API, o frontend em `frontend/` e as migrations do
 Supabase. A branch `main` é a fonte de verdade do FalaClub.
 
+Na plataforma, o aluno pode enviar texto ou áudio, e a Mia sempre responde por
+escrito. Respostas em áudio da Mia pertencem exclusivamente ao canal WhatsApp.
+
 ## Verificações locais
 
 Backend:

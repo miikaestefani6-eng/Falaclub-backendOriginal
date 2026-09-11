@@ -22,7 +22,6 @@ type VoiceResponse = {
   conversationId: string;
   userTranscript: string;
   replyText: string;
-  audioBase64: string | null;
   messageId: string;
 };
 
@@ -57,19 +56,7 @@ async function main() {
     throw new Error(`Unexpected voice response: ${body}`);
   }
 
-  if (payload.audioBase64 !== null) {
-    const audioBytes = Buffer.from(payload.audioBase64, 'base64');
-
-    if (audioBytes.length === 0) {
-      throw new Error('TTS returned an empty MP3 payload.');
-    }
-
-    console.log('audioBytes:', audioBytes.length);
-  } else {
-    console.log('audioBase64: null (TTS unavailable; text fallback accepted)');
-  }
-
-  console.log('✅ Voice chat smoke test passed');
+  console.log('✅ Audio input with written reply smoke test passed');
   console.log('conversationId:', payload.conversationId);
   console.log('userTranscript:', payload.userTranscript);
   console.log('replyText:', payload.replyText);

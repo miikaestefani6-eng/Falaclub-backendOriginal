@@ -25,7 +25,7 @@ export async function sendMiaMessage(message: string, conversationId?: string | 
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify({ message, ...(conversationId ? { conversationId } : {}) }),
   });
-  return parseResponse(response) as Promise<{ conversationId: string; reply: string; messageId: string; audioBase64: string | null }>;
+  return parseResponse(response) as Promise<{ conversationId: string; reply: string; messageId: string }>;
 }
 
 export async function sendMiaVoice(audio: Blob, conversationId?: string | null) {
@@ -42,7 +42,6 @@ export async function sendMiaVoice(audio: Blob, conversationId?: string | null) 
     conversationId: string;
     userTranscript: string;
     replyText: string;
-    audioBase64: string;
     messageId: string;
   }>;
 }
