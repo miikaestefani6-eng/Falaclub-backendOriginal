@@ -1,4 +1,4 @@
-import type { NextFunction, Request, Response } from 'express';
+import type { RequestHandler } from 'express';
 import { env } from '../config/env.js';
 import type { AuthenticatedRequest } from './auth.middleware.js';
 
@@ -13,7 +13,7 @@ function pruneExpired(now: number) {
   }
 }
 
-export function chatRateLimit(request: Request, response: Response, next: NextFunction) {
+export const chatRateLimit: RequestHandler = (request, response, next) => {
   const authenticatedRequest = request as AuthenticatedRequest;
   const now = Date.now();
   pruneExpired(now);
@@ -43,4 +43,4 @@ export function chatRateLimit(request: Request, response: Response, next: NextFu
   response.setHeader('RateLimit-Limit', env.CHAT_RATE_LIMIT_PER_MINUTE.toString());
   response.setHeader('RateLimit-Remaining', Math.max(0, env.CHAT_RATE_LIMIT_PER_MINUTE - current.count).toString());
   next();
-}
+};
