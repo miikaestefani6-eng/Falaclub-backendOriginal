@@ -18,6 +18,14 @@ function Onboarding() {
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
+
+    const normalizedName = fullName.trim();
+    const normalizedGoal = goal.trim();
+    if (!normalizedName || !normalizedGoal) {
+      setErrorMessage("Preencha seu nome e objetivo para continuar.");
+      return;
+    }
+
     setLoading(true);
     setErrorMessage(null);
 
@@ -31,10 +39,10 @@ function Onboarding() {
       const { error } = await supabase.from("profiles").upsert(
         {
           id: user.id,
-          full_name: fullName.trim(),
+          full_name: normalizedName,
           target_language: language,
           level,
-          goal: goal.trim(),
+          goal: normalizedGoal,
           daily_minutes: dailyMinutes,
         },
         { onConflict: "id" },
